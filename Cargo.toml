@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 nalgebra = { version = "0.32.3", features = ["rand"] }
 rand = "0.8.5"
-mnist = "0.6.0"
+mnist = { version = "0.6.0", features = ["download"] }

@@ -3,8 +3,15 @@ use std::usize;
 use nalgebra::{SMatrix, SVector, DVector};
 use rand::distributions::Uniform;
 
+pub fn dvector_from_svector<const R: usize>(vector: &SVector<f32, R>) -> DVector<f32> {
+    vector.data
+        .as_slice()
+        .to_vec()
+        .into()
+}
+
 pub trait Layer {
-    fn forward(&self, input: DVector<f32>) -> DVector<f32>;
+    fn forward(&self, input: &DVector<f32>) -> DVector<f32>;
 }
 
 pub struct Dense<const R: usize, const C: usize> {
@@ -25,8 +32,8 @@ impl <const R: usize, const C: usize> Dense<R, C> {
 }
 
 impl<const R: usize, const C: usize> Layer for Dense<R, C> {
-    fn forward(&self, input: DVector<f32>) -> DVector<f32> {
-        (self.weights * input + self.biases).data.as_slice().to_vec().into()
+    fn forward(&self, input: &DVector<f32>) -> DVector<f32> {
+        dvector_from_svector(&(self.weights * input + self.biases))
     }
 }
 
@@ -48,7 +55,7 @@ impl <const R: usize, const C: usize> Convolutional<R, C> {
 }
 
 impl<const R: usize, const C: usize> Layer for Convolutional<R, C> {
-    fn forward(&self, input: DVector<f32>) -> DVector<f32> {
-        (self.weights * input + self.biases).data.as_slice().to_vec().into()
+    fn forward(&self, input: &DVector<f32>) -> DVector<f32> {
+        dvector_from_svector(&(self.weights * input + self.biases))
     }
 }
