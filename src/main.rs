@@ -54,7 +54,7 @@ fn run() {
         .training_set_length(TRAIN_DATA_LENGTH)
         .test_set_length(TEST_DATA_LENGTH)
         //.download_and_extract()
-        .base_path("data\\")
+        //.base_path("data\\")
         .training_images_filename("train-images.idx3-ubyte")
         .training_labels_filename("train-labels.idx1-ubyte")
         .test_images_filename("t10k-images.idx3-ubyte")
