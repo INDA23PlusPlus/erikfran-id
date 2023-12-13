@@ -3,7 +3,7 @@ use nalgebra::{SMatrix, SVector, DVector, DMatrix, VecStorage, Dyn, Matrix, Matr
 use rand::distributions::Uniform;
 use crate::activation::Activation;
 
-const LEARNING_RATE: f32 = 0.01;
+const LEARNING_RATE: f32 = 0.001;
 
 pub fn svector_to_dvector<const R: usize>(vector: &SVector<f32, R>) -> DVector<f32> {
     vector.data
@@ -29,7 +29,7 @@ pub struct Dense<const R: usize, const C: usize> {
     biases: SVector<f32, R>,
     weights_gradient: SMatrix<f32, R, C>,
     biases_gradient: SVector<f32, R>,
-    cached_input: DVector<f32>,
+    cached_input: SVector<f32, C>,
     cached_z: SVector<f32, R>,
     activation: Activation,
 }
@@ -39,12 +39,14 @@ impl <const R: usize, const C: usize> Dense<R, C> {
         let between = Uniform::from(0.0f32..1.0f32);
         let mut rng = rand::thread_rng();
 
+        println!("Dense: {}, {}", R, C);
+
         Dense {
             weights: SMatrix::<f32, R, C>::from_distribution(&between, &mut rng),
             biases: SVector::<f32, R>::from_distribution(&between, &mut rng),
             weights_gradient: SMatrix::<f32, R, C>::zeros(),
             biases_gradient: SVector::<f32, R>::zeros(),
-            cached_input: DVector::<f32>::zeros(R),
+            cached_input: SVector::<f32, C>::zeros(),
             cached_z: SVector::<f32, R>::zeros(),
             activation
         }
@@ -59,31 +61,39 @@ impl<const R: usize, const C: usize> Layer for Dense<R, C> {
     }
 
     fn train_forward(&mut self, input: &DVector<f32>) -> DVector<f32> {
-        self.cached_input = input.clone();
+        // println!("This is input: {} == {}", self.biases.len(), input.len());
+        self.cached_input = dvector_to_svector(&input);
+        let input = self.activation.dyn_forward(&input);
+        // println!("This is cached_input: {} ", self.cached_input.len());
         let z = &(self.weights * input + self.biases);
+        // println!("cached_zl: {}, {}", cached_zl.len(), cached_zl.ncols());
         self.cached_z = *z;
 
-        svector_to_dvector(&self.activation.forward(z))
+        svector_to_dvector(z)
     }
 
     fn backward(&mut self, input: &DVector<f32>) -> DVector<f32> {
         /* let delta = input * self.activation.backward(
             &dvector_to_svector(&self.cached_input)); */
 
-        println!("{} == {}", self.biases_gradient.len(), input.len());
+        // println!("{} == {}", self.biases_gradient.len(), input.len());
 
         self.biases_gradient += input;
 
-        println!("{}, {} == {}, {} == {}, {}", 
+        /* println!("{}, {} == {}, {} == {}, {}", 
             self.weights_gradient.nrows(), self.weights_gradient.ncols(), 
             input.len(), input.ncols(),
-            self.cached_input.len(), self.cached_z.ncols());
+            self.cached_input.len(), self.cached_input.ncols()); */
 
         self.weights_gradient += input * self.cached_input.clone().transpose();
 
+        // println!("weights trasposed cords: {}, {}", self.weights.transpose().nrows(), self.weights.transpose().ncols());
+        // println!("input cords: {}, {}", input.nrows(), input.ncols());
+        // println!("cached_z cords: {}, {}", self.cached_z.nrows(), self.cached_z.ncols());
+
         svector_to_dvector(&(self.weights.transpose() * input)
                 .component_mul(
-                    &svector_to_dvector(&self.activation.backward(&self.cached_z))
+                    &self.activation.backward(&self.cached_input)
                 ))
     }
 

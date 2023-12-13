@@ -12,8 +12,8 @@ mod activation;
 
 const RESOLUTION: usize = 28 * 28;
 
-const HIDDEN_LAYERS: u8 = 2;
-const LAYER_SIZE: [usize; HIDDEN_LAYERS as usize] = [28, 10];
+const HIDDEN_LAYERS: u8 = 3;
+const LAYER_SIZE: [usize; HIDDEN_LAYERS as usize] = [500, 300, 75];
 const INPUTS: usize = 28 * 28;
 const OUTPUTS: usize = 10;
 
@@ -26,7 +26,7 @@ const ACTIVATION: Activation = Activation::ReLU;
 
 const MAX_SGD_BATCH_SIZE: usize = 1000;
 
-const STACK_SIZE: usize = 16 * 1024 * 1024;
+const STACK_SIZE: usize = 32 * 1024 * 1024;
 
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
@@ -101,9 +101,10 @@ fn run() {
     //println!("biases: {:?}", network[0].biases());
     network.push(Box::new(Dense::<{ LAYER_SIZE[1] }, { LAYER_SIZE[0] }>::new(ACTIVATION)));
     println!("Created layer 2.");
+    network.push(Box::new(Dense::<{ LAYER_SIZE[2] }, { LAYER_SIZE[1] }>::new(ACTIVATION)));
     //println!("weights: {:?}", network[1].weights());
     //println!("biases: {:?}", network[1].biases());
-    network.push(Box::new(Dense::<OUTPUTS, { LAYER_SIZE[1] }>::new(ACTIVATION)));
+    network.push(Box::new(Dense::<OUTPUTS, { LAYER_SIZE[2] }>::new(ACTIVATION)));
     println!("Created layer 3. With {}, {}", OUTPUTS, LAYER_SIZE[1]);
     //println!("weights: {:?}", network[2].weights());
     //println!("biases: {:?}", network[2].biases());
@@ -133,8 +134,9 @@ fn run() {
             let mut input = svector_to_dvector(image);
 
             for layer in network.iter_mut() {
-                //println!("input len: {:?}", input.len());
-                input = layer.forward(&input);
+                // println!("input len: {:?} of forward ", input.len());
+                // println!("input: {:?}", input);
+                input = layer.train_forward(&input);
             }
 
             let mut max = 0f32;
@@ -166,7 +168,7 @@ fn run() {
                 .component_mul(&ACTIVATION.dyn_backward(&network.last().unwrap().get_z()));
 
             for layer in network.iter_mut().rev() {
-                println!("input len: {:?}", input.len());
+                // println!("input len: {:?}", input.len());
                 input = layer.backward(&input);
             }
         }
